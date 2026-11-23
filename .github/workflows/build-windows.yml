@@ -1,0 +1,33 @@
+name: Build Windows GUI
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up MinGW
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          version: 13.2.0
+          platform: x64
+      - name: Compile native Win32 application
+        shell: pwsh
+        run: g++ -std=c++17 -O2 -Wall -Wextra -municode -mwindows NetworkGUI.cpp -o TelecomNetworkAnalyzer.exe -lcomctl32 -lgdi32 -luser32
+      - name: Package application
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path package | Out-Null
+          Copy-Item TelecomNetworkAnalyzer.exe package/
+          Copy-Item README.md package/
+          Compress-Archive -Path package\* -DestinationPath Telecom-Network-Analyzer-Windows.zip -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Telecom-Network-Analyzer-Windows
+          path: Telecom-Network-Analyzer-Windows.zip
+          if-no-files-found: error
+          retention-days: 30
